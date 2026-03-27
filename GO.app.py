@@ -5,7 +5,6 @@ import urllib.parse
 # 1. Configuration
 st.set_page_config(page_title="Coach Grand Oral", layout="wide")
 
-# Fonction pour nettoyer les liens
 def get_link(url):
     if pd.isna(url) or len(str(url)) < 10: return None
     url = str(url).strip()
@@ -23,59 +22,64 @@ st.title("Coach Grand Oral")
 menu = st.sidebar.radio("Navigation", 
     ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
 
-# --- VIDAGE DU CACHE ET CHARGEMENT ---
-@st.cache_data(ttl=10) # Force la mise à jour toutes les 10 secondes
-def load_data(onglet):
-    url = BASE_URL + urllib.parse.quote(onglet)
-    return pd.read_csv(url).fillna("")
-
+# --- CHARGEMENT SANS CACHE POUR FORCER LA MISE À JOUR ---
 try:
-    df = load_data(menu)
+    url = BASE_URL + urllib.parse.quote(menu)
+    df = pd.read_csv(url).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- 1. SI ON EST SUR L'ETHOS ---
+    # --- LOGIQUE POUR L'ETHOS ---
     if menu == "L'ETHOS":
         for i, row in df.iterrows():
-            # A. NOM
-            if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
-                st.header(row['nom'])
-            
-            # B. IMAGE (Colonne 'logo' dans ton Sheet Ethos)
-            if 'logo' in df.columns:
-                img = get_link(row['logo'])
-                if img: st.image(img, width=500)
-            
-            # C. DESCRIPTIF
-            if 'descriptif' in df.columns and str(row['descriptif']).strip() not in ["", "0", "nan"]:
-                st.write(row['descriptif'])
-            
-            # D. EXERCICE
-            if 'exercice' in df.columns and str(row['exercice']).strip() not in ["", "0", "nan"]:
-                st.info(f"**L'exercice :**\n\n{row['exercice']}")
-            
-            st.divider()
+            # On ne traite que les lignes qui ont un NOM (pour éviter les lignes vides du Sheet)
+            nom_val = str(row.get('nom', '')).strip()
+            if nom_val and nom_val.lower() not in ["0", "nan", ""]:
+                # 1. NOM
+                st.header(nom_val)
+                
+                # 2. IMAGE (colonne logo)
+                if 'logo' in df.columns:
+                    img = get_link(row['logo'])
+                    if img:
+                        st.image(img, width=600)
+                
+                # 3. DESCRIPTIF
+                if 'descriptif' in df.columns:
+                    desc = str(row['descriptif']).strip()
+                    if desc and desc.lower() not in ["0", "nan", ""]:
+                        st.markdown(f"**Note :** {desc}")
+                
+                # 4. EXERCICE
+                if 'exercice' in df.columns:
+                    exo = str(row['exercice']).strip()
+                    if exo and exo.lower() not in ["0", "nan", ""]:
+                        st.info(f"**L'exercice :**\n\n{exo}")
+                
+                st.divider()
 
-    # --- 2. SI ON EST SUR HOME ---
+    # --- LOGIQUE POUR LA HOME ---
     elif menu == "Home":
         st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=200)
         st.write("Bienvenue dans ton allié ultime pour réussir le Grand Oral...")
 
-    # --- 3. TOUTES LES AUTRES PAGES ---
+    # --- LOGIQUE POUR LES AUTRES PAGES ---
     else:
         for i, row in df.iterrows():
-            if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
-                st.header(row['nom'])
-            
-            if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
-                st.write(row['texte'])
+            nom_val = str(row.get('nom', '')).strip()
+            if nom_val and nom_val.lower() not in ["0", "nan", ""]:
+                st.header(nom_val)
+                
+                if 'texte' in df.columns:
+                    st.write(row['texte'])
 
-            # Images 1 et 2
-            for col in ['image 1', 'image 2']:
-                if col in df.columns:
-                    l = get_link(row[col])
-                    if l: st.image(l, width=600)
-            
-            st.divider()
+                for col in ['image 1', 'image 2']:
+                    if col in df.columns:
+                        l = get_link(row[col])
+                        if l: st.image(l, width=600)
+                
+                if 'video' in df.columns and str(row['video']).startswith('http'):
+                    st.video(row['video'])
+                st.divider()
 
 except Exception as e:
-    st.warning(f"Chargement de l'onglet '{menu}'... Si rien n'apparaît, vérifiez le nom dans le Google Sheet.")
+    st.error("Erreur de chargement de l'onglet. Vérifiez le nom dans le Google Sheet.")
