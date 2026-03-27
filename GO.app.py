@@ -19,7 +19,7 @@ SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet="
 
 # --- TITRE SANS ÉMOJI (Visible sur toutes les pages) ---
-st.title("Coach Grand Oral")
+st.title("Coach")
 
 # 3. Navigation
 menu = st.sidebar.radio("Navigation", 
