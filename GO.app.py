@@ -4,9 +4,8 @@ import re
 import urllib.parse
 
 # 1. Configuration de la page
-# On garde ce lien pour l'icône du navigateur
-FAVICON_URL = "https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png"
-st.set_page_config(page_title="Coach Grand Oral", page_icon=FAVICON_URL, layout="wide")
+LOGO_GITHUB = "https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png"
+st.set_page_config(page_title="Coach Grand Oral", page_icon=LOGO_GITHUB, layout="wide")
 
 def get_link(url):
     if pd.isna(url) or len(str(url)) < 10 or not str(url).strip().lower().startswith('http'): 
@@ -16,30 +15,34 @@ def get_link(url):
         url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
     return url
 
-# 2. Connexion Sheet
+# 2. Paramètres Google Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet="
 
+# Titre visible sur toutes les pages
 st.title("Coach Grand Oral")
 
-# 3. Menu
+# 3. Navigation
 menu = st.sidebar.radio("Navigation", 
     ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "Exercices ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
 
 # --- PAGE ACCUEIL (HOME) ---
 if menu == "Home":
+    # On essaie de charger l'image depuis la colonne 'logo' du Sheet
+    image_a_afficher = LOGO_GITHUB # Par défaut
+    
     try:
         df_home = pd.read_csv(BASE_URL + "Home").fillna("")
         df_home.columns = [c.strip().lower() for c in df_home.columns]
         
-        # ON CHERCHE LA COLONNE 'LOGO'
         if 'logo' in df_home.columns:
-            img_logo = get_link(df_home['logo'].iloc[0])
-            if img_logo:
-                st.image(img_logo, width=200)
+            link = get_link(df_home['logo'].iloc[0])
+            if link:
+                image_a_afficher = link
     except:
-        # Si l'onglet Home n'est pas prêt, on affiche le logo par défaut
-        st.image(FAVICON_URL, width=200)
+        pass # On garde le LOGO_GITHUB par défaut en cas d'erreur
+    
+    st.image(image_a_afficher, width=200)
 
     st.markdown("""
     Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
@@ -52,7 +55,7 @@ if menu == "Home":
     Que tu sois en train de commencer tes révisions ou dans la dernière ligne droite, cette application est là pour te guider, t’entraîner et te rassurer. À toi de jouer.
     """)
 
-# --- AUTRES PAGES (L'épreuve, etc.) ---
+# --- AUTRES PAGES ---
 else:
     try:
         onglet_encode = urllib.parse.quote(menu)
@@ -60,18 +63,17 @@ else:
         df.columns = [c.strip().lower() for c in df.columns]
 
         for i, row in df.iterrows():
-            # Titre section
+            # Titre
             nom = str(row.get('nom', '')).strip()
             if nom and nom not in ["0", "nan"]:
                 st.header(nom)
             
-            # Texte principal
+            # Texte
             txt = str(row.get('texte', '')).strip()
             if txt and txt not in ["0", "nan"]:
                 st.write(txt)
 
-            # AFFICHAGE DES IMAGES (Seulement image 1 et image 2)
-            # On ignore totalement la colonne 'logo' ici
+            # Images 1 et 2 uniquement
             liens_valides = []
             for col_img in ['image 1', 'image 2']:
                 if col_img in df.columns:
@@ -93,4 +95,4 @@ else:
             st.divider()
 
     except Exception as e:
-        st.info("Sélectionnez une section pour afficher le contenu.")
+        st.info("Sélectionnez une section dans le menu.")
