@@ -6,10 +6,10 @@ import re
 st.set_page_config(page_title="Coach Grand Oral", page_icon="🎓", layout="wide")
 
 def get_link(url):
-    if pd.isna(url) or str(url).strip() == "" or str(url).strip() == "0": 
+    if pd.isna(url) or str(url).strip() in ["", "0", "nan"]: 
         return None
     url = str(url).strip()
-    # Conversion automatique GitHub vers lien direct (Raw)
+    # Conversion automatique GitHub vers Raw
     if "github.com" in url and "raw" not in url:
         url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
     # Conversion Drive
@@ -30,41 +30,49 @@ menu = st.sidebar.radio("Navigation",
 
 try:
     onglet_nom = menu.replace(" ", "%20")
-    # On force pandas à ne pas interpréter les colonnes vides comme des 0
     df = pd.read_csv(BASE_URL + onglet_nom).fillna("")
+    # Nettoyage des noms de colonnes
     df.columns = [c.strip().lower() for c in df.columns]
 
     for i, row in df.iterrows():
-        # Affichage du nom/titre
+        # --- TITRE ---
         nom_section = str(row.get('nom', '')).strip()
         if nom_section and nom_section != "0":
             st.header(nom_section)
         
-        # Affichage du texte
-        texte_principal = str(row.get('texte', '')).strip()
-        if texte_principal and texte_principal != "0":
-            st.write(texte_principal)
+        # --- TEXTE PRINCIPAL ---
+        texte_p = str(row.get('texte', '')).strip()
+        if texte_p and texte_p != "0":
+            st.write(texte_p)
 
-        # --- AFFICHAGE DE L'IMAGE ---
-        # On vérifie si la colonne 'image' existe et contient quelque chose
-        if 'image' in df.columns:
-            valeur_image = str(row['image']).strip()
-            if valeur_image and valeur_image != "0":
-                img_url = get_link(valeur_image)
-                if img_url:
-                    # Ici, st.image affiche l'image, pas le lien !
-                    st.image(img_url, use_container_width=True)
+        # --- GESTION DES IMAGES (Toutes les colonnes contenant "image") ---
+        # On crée des colonnes Streamlit si on a plusieurs images (image 1, image 2)
+        cols_img = [c for c in df.columns if 'image' in c]
+        
+        if cols_img:
+            # On filtre les liens valides pour ne pas créer de colonnes vides
+            liens_valides = []
+            for c in cols_img:
+                link = get_link(row[c])
+                if link: liens_valides.append(link)
+            
+            if liens_valides:
+                # Si on a plusieurs images, on les affiche côte à côte
+                if len(liens_valides) > 1:
+                    st_cols = st.columns(len(liens_valides))
+                    for idx, link in enumerate(liens_valides):
+                        st_cols[idx].image(link, use_container_width=True)
+                else:
+                    st.image(liens_valides[0], use_container_width=True)
 
-        # Vidéo
+        # --- VIDÉO ---
         if 'video' in df.columns and str(row['video']).strip() not in ["", "0"]:
             st.video(row['video'])
             
-        # Textes secondaires (1, 2, 3)
-        for c in ['texte1', 'texte2', 'texte3']:
-            if c in df.columns:
-                val = str(row[c]).strip()
-                if val and val != "0":
-                    st.write(val)
+        # --- TEXTES SECONDAIRES ---
+        for c in df.columns:
+            if ('texte' in c and c != 'texte') and str(row[c]).strip() not in ["", "0"]:
+                st.write(str(row[c]).strip())
         
         st.divider()
 
