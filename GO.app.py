@@ -5,15 +5,20 @@ import re
 st.set_page_config(page_title="Coach Grand Oral", page_icon="🎓", layout="wide")
 
 def get_link(url):
-    # On ignore le lien si c'est vide, nan, ou juste un "0"
-    if pd.isna(url) or str(url).strip() in ["", "0", "nan", "0.0"]: 
+    # Sécurité absolue : si c'est pas du texte ou si c'est trop court, on ignore
+    if pd.isna(url) or len(str(url)) < 10: 
         return None
+    
     url = str(url).strip()
+    
+    # SI LE LIEN NE COMMENCE PAS PAR HTTP, ON L'IGNORE (bye bye les "0")
+    if not url.lower().startswith('http'):
+        return None
+
+    # Conversion GitHub Raw
     if "github.com" in url and "raw" not in url:
         url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-    if "drive.google.com" in url:
-        file_id = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
-        if file_id: return f"https://drive.google.com/uc?export=view&id={file_id.group(1)}"
+    
     return url
 
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
@@ -28,46 +33,49 @@ try:
     df.columns = [c.strip().lower() for c in df.columns]
 
     for i, row in df.iterrows():
-        # 1. Titre
-        nom_section = str(row.get('nom', '')).strip()
-        if nom_section and nom_section not in ["", "0", "nan"]:
-            st.header(nom_section)
+        # Titre section
+        nom = str(row.get('nom', '')).strip()
+        if nom and nom not in ["0", "nan"]:
+            st.header(nom)
         
-        # 2. Texte Principal
-        texte_p = str(row.get('texte', '')).strip()
-        if texte_p and texte_p not in ["", "0", "nan"]:
-            st.write(texte_p)
+        # Texte principal
+        txt = str(row.get('texte', '')).strip()
+        if txt and txt not in ["0", "nan"]:
+            st.write(txt)
 
-        # 3. IMAGES (Gestion image 1, image 2, etc.)
-        # On récupère toutes les colonnes qui contiennent "image"
+        # GESTION DES IMAGES (Colonnes image 1, image 2, etc.)
+        # On ne cherche que les colonnes qui contiennent "image"
         cols_img = [c for c in df.columns if 'image' in c]
         liens_valides = []
+        
         for c in cols_img:
             link = get_link(row[c])
-            if link: liens_valides.append(link)
+            if link:
+                liens_valides.append(link)
         
+        # Affichage des images trouvées
         if liens_valides:
             if len(liens_valides) > 1:
-                st_cols = st.columns(len(liens_valides))
-                for idx, link in enumerate(liens_valides):
-                    st_cols[idx].image(link, use_container_width=True)
+                cols = st.columns(len(liens_valides))
+                for idx, l in enumerate(liens_valides):
+                    cols[idx].image(l, use_container_width=True)
             else:
                 st.image(liens_valides[0], use_container_width=True)
 
-        # 4. Vidéo
+        # Vidéo
         if 'video' in df.columns:
-            v_link = str(row['video']).strip()
-            if v_link and v_link not in ["", "0", "nan"]:
-                st.video(v_link)
+            v = str(row['video']).strip()
+            if v.startswith('http'):
+                st.video(v)
             
-        # 5. Textes additionnels (texte1, texte2, etc.)
+        # Textes secondaires
         for c in df.columns:
-            if ('texte' in c and c != 'texte'):
+            if 'texte' in c and c != 'texte':
                 val = str(row[c]).strip()
-                if val and val not in ["", "0", "nan"]:
+                if val and val not in ["0", "nan"]:
                     st.write(val)
         
         st.divider()
 
 except Exception as e:
-    st.error(f"Mise à jour en cours...")
+    st.error("Mise à jour du contenu...")
