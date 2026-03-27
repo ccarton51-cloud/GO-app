@@ -33,7 +33,6 @@ try:
 
     # --- PAGE ACCUEIL (HOME) ---
     if menu == "Home":
-        # On affiche le logo depuis ta colonne 'logo'
         img_url = LOGO_FIXE
         if 'logo' in df.columns:
             link = get_link(df['logo'].iloc[0])
@@ -41,7 +40,6 @@ try:
         
         st.image(img_url, width=200)
         
-        # Texte de bienvenue complet (sans erreur de syntaxe !)
         st.markdown("""
         Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
         Cette application a été conçue comme un véritable aide-mémoire, simple et efficace, pour t’accompagner partout dans ta préparation. Tu y trouveras tout l’essentiel pour aborder l’épreuve avec confiance : le déroulement détaillé du Grand Oral pour savoir exactement à quoi t’attendre, des “plans zen” pour apprendre à gérer ton stress et rester serein, ainsi que des exercices pratiques pour maîtriser les fondamentaux de la prise de parole — ethos, pathos, logos — et faire passer ton message avec impact.  
@@ -56,34 +54,29 @@ try:
     # --- AUTRES PAGES (ZEN, L'épreuve, etc.) ---
     else:
         for i, row in df.iterrows():
-            # Titre
-            if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
-                st.header(row['nom'])
+            # 1. Titre (Ex: Plan ZEN #1)
+            nom = str(row.get('nom', '')).strip()
+            if nom and nom not in ["0", "nan"]:
+                st.header(nom)
             
-            # Texte
-            if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
-                st.write(row['texte'])
+            # 2. Texte agrandi (Ex: Rituel anti-stress)
+            txt = str(row.get('texte', '')).strip()
+            if txt and txt not in ["0", "nan"]:
+                st.subheader(txt) # Utilisation de subheader pour que ce soit plus gros
 
-            # Images (On cherche image 1 et image 2 pour tes plans ZEN)
-            liens_valides = []
+            # 3. Images l'une en dessous de l'autre pour éviter l'effet "trop petit / trop gros"
             for col_img in ['image 1', 'image 2']:
                 if col_img in df.columns:
                     l = get_link(row[col_img])
-                    if l: liens_valides.append(l)
-            
-            if liens_valides:
-                if len(liens_valides) > 1:
-                    cols = st.columns(len(liens_valides))
-                    for idx, l in enumerate(liens_valides):
-                        cols[idx].image(l, use_container_width=True)
-                else:
-                    st.image(liens_valides[0], use_container_width=True)
+                    if l:
+                        # On affiche l'image à une taille raisonnable (ex: 500 pixels de large)
+                        st.image(l, width=600)
 
-            # Vidéo
+            # 4. Vidéo
             if 'video' in df.columns and str(row['video']).startswith('http'):
                 st.video(row['video'])
             
             st.divider()
 
 except Exception as e:
-    st.info("Sélectionnez une section dans le menu de gauche pour charger le contenu.")
+    st.info("Sélectionnez une section dans le menu de gauche.")
