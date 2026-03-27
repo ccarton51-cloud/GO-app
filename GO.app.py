@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import re
 import urllib.parse
 
 # 1. Configuration de la page
@@ -21,9 +20,9 @@ BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:c
 
 st.title("Coach Grand Oral")
 
-# 3. Navigation
+# 3. Navigation (Mise à jour avec ton nouveau nom d'onglet)
 menu = st.sidebar.radio("Navigation", 
-    ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "Exercices ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
+    ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
 
 # --- CHARGEMENT DYNAMIQUE ---
 try:
@@ -37,42 +36,41 @@ try:
         if 'logo' in df.columns:
             link = get_link(df['logo'].iloc[0])
             if link: img_url = link
-        
         st.image(img_url, width=200)
-        
-        st.markdown("""
-        Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
-        Cette application a été conçue comme un véritable aide-mémoire, simple et efficace, pour t’accompagner partout dans ta préparation. Tu y trouveras tout l’essentiel pour aborder l’épreuve avec confiance : le déroulement détaillé du Grand Oral pour savoir exactement à quoi t’attendre, des “plans zen” pour apprendre à gérer ton stress et rester serein, ainsi que des exercices pratiques pour maîtriser les fondamentaux de la prise de parole — ethos, pathos, logos — et faire passer ton message avec impact.  
-        
-        Pour profiter pleinement de toutes ces ressources, utilise la navigation de l’application afin d’accéder facilement aux différentes sections et avancer à ton rythme.  
-        
-        Parce que la réussite se construit aussi dans les derniers jours, un compte à rebours t’accompagne de J-7 jusqu’au jour J, avec des rappels et des conseils pour rester concentré et prêt au bon moment.  
-        
-        Que tu sois en train de commencer tes révisions ou dans la dernière ligne droite, cette application est là pour te guider, t’entraîner et te rassurer. À toi de jouer.
-        """)
+        st.markdown("""Bienvenue dans ton allié ultime pour réussir le Grand Oral...""") # Ton texte de bienvenue
 
-    # --- AUTRES PAGES (ZEN, L'épreuve, etc.) ---
+    # --- PAGES DE CONTENU (ZEN, ETHOS, etc.) ---
     else:
         for i, row in df.iterrows():
-            # 1. Titre (Ex: Plan ZEN #1)
+            # A. Titre de l'exercice (Colonne 'Nom')
             nom = str(row.get('nom', '')).strip()
             if nom and nom not in ["0", "nan"]:
                 st.header(nom)
             
-            # 2. Texte agrandi (Ex: Rituel anti-stress)
-            txt = str(row.get('texte', '')).strip()
-            if txt and txt not in ["0", "nan"]:
-                st.subheader(txt) # Utilisation de subheader pour que ce soit plus gros
+            # B. Descriptif ou Texte principal
+            # On cherche soit 'descriptif' (ETHOS) soit 'texte' (ZEN)
+            txt_principal = str(row.get('descriptif', row.get('texte', ''))).strip()
+            if txt_principal and txt_principal not in ["0", "nan"]:
+                st.subheader(txt_principal)
 
-            # 3. Images l'une en dessous de l'autre pour éviter l'effet "trop petit / trop gros"
-            for col_img in ['image 1', 'image 2']:
-                if col_img in df.columns:
-                    l = get_link(row[col_img])
-                    if l:
-                        # On affiche l'image à une taille raisonnable (ex: 500 pixels de large)
-                        st.image(l, width=600)
+            # C. L'Exercice détaillé (Spécifique à ETHOS)
+            exercice = str(row.get('exercice', '')).strip()
+            if exercice and exercice not in ["0", "nan"]:
+                st.info(exercice) # Mis en évidence dans un encadré bleu
 
-            # 4. Vidéo
+            # D. Images (On cherche 'logo', 'image 1', 'image 2')
+            # Dans ETHOS, tes images sont dans la colonne 'logo'
+            liens_valides = []
+            for col_img in ['logo', 'image 1', 'image 2', 'image']:
+                # On évite d'afficher le logo de la Home sur les autres pages
+                if menu != "Home" or col_img != "logo":
+                    l = get_link(row.get(col_img, ''))
+                    if l: liens_valides.append(l)
+            
+            for l in liens_valides:
+                st.image(l, width=600)
+
+            # E. Vidéo
             if 'video' in df.columns and str(row['video']).startswith('http'):
                 st.video(row['video'])
             
