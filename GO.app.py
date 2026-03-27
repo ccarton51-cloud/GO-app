@@ -14,13 +14,13 @@ def get_link(url):
         url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
     return url
 
-# 2. Connexion Google Sheet
+# 2. Paramètres Google Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet="
 
 st.title("Coach Grand Oral")
 
-# 3. Menu (Vérifie bien que les noms ici sont EXACTEMENT ceux de tes onglets Sheet)
+# 3. Menu
 menu = st.sidebar.radio("Navigation", 
     ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
 
@@ -29,46 +29,43 @@ try:
     df = pd.read_csv(BASE_URL + onglet_encode).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- CAS 1 : PAGE HOME ---
+    # --- PAGE ACCUEIL (HOME) ---
     if menu == "Home":
         st.image(LOGO_FIXE, width=200)
-        st.markdown("""
-        Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
-        Cette application a été conçue comme un véritable aide-mémoire... [Ton texte complet]
-        """)
+        st.markdown("Bienvenue dans ton allié ultime pour réussir le Grand Oral...")
 
-    # --- CAS 2 : PAGE L'ETHOS (Structure spécifique avec Descriptif et Exercice) ---
+    # --- PAGE L'ETHOS (Ordre spécifique demandé) ---
     elif menu == "L'ETHOS":
         for i, row in df.iterrows():
-            if str(row.get('nom', '')).strip() not in ["", "0", "nan"]:
+            # 1. NOM
+            if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
                 st.header(row['nom'])
             
-            # Affichage du descriptif (en italique pour différencier)
-            if 'descriptif' in df.columns and str(row['descriptif']).strip() not in ["", "0", "nan"]:
-                st.write(f"*{row['descriptif']}*")
-            
-            # Affichage de l'exercice dans un encadré
-            if 'exercice' in df.columns and str(row['exercice']).strip() not in ["", "0", "nan"]:
-                st.info(row['exercice'])
-
-            # Image de l'exercice (colonne 'logo')
+            # 2. IMAGE (Colonne 'logo' dans ton Sheet)
             if 'logo' in df.columns:
                 img = get_link(row['logo'])
                 if img:
                     st.image(img, width=600)
+            
+            # 3. DESCRIPTIF
+            if 'descriptif' in df.columns and str(row['descriptif']).strip() not in ["", "0", "nan"]:
+                st.write(f"**Note :** {row['descriptif']}")
+            
+            # 4. EXERCICE
+            if 'exercice' in df.columns and str(row['exercice']).strip() not in ["", "0", "nan"]:
+                st.info(f"**L'exercice :** \n\n {row['exercice']}")
+
             st.divider()
 
-    # --- CAS 3 : TOUTES LES AUTRES PAGES (ZEN, L'épreuve, etc.) ---
+    # --- AUTRES PAGES (ZEN, L'épreuve, etc.) ---
     else:
         for i, row in df.iterrows():
             if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
                 st.header(row['nom'])
             
             if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
-                # On agrandit un peu le texte pour ZEN comme demandé
                 st.markdown(f"### {row['texte']}")
 
-            # Images 1 et 2
             for col_img in ['image 1', 'image 2']:
                 if col_img in df.columns:
                     l = get_link(row[col_img])
@@ -80,4 +77,4 @@ try:
             st.divider()
 
 except Exception as e:
-    st.error(f"Erreur : Vérifie que l'onglet '{menu}' existe dans ton Sheet avec les bonnes colonnes.")
+    st.info("Chargement du contenu...")
