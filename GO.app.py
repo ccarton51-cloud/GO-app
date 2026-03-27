@@ -3,71 +3,69 @@ import pandas as pd
 import re
 
 # Configuration
-st.set_page_config(page_title="Coach Grand Oral", page_icon="🎓")
+st.set_page_config(page_title="Coach Grand Oral", page_icon="🎓", layout="wide")
 
-# Fonction pour transformer un lien Google Drive en lien image direct
+# --- FONCTIONS UTILES ---
 def get_drive_direct_link(url):
-    if "drive.google.com" in str(url):
-        file_id = re.search(r'/d/([a-zA-Z0-9-_]+)', str(url))
-        if file_id:
-            return f"https://drive.google.com/uc?export=view&id={file_id.group(1)}"
-    return url
+    if pd.isna(url) or "drive.google.com" not in str(url): return url
+    file_id = re.search(r'/d/([a-zA-Z0-9-_]+)', str(url))
+    return f"https://drive.google.com/uc?export=view&id={file_id.group(1)}" if file_id else url
 
-# Chargement des données
-DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzSDyuo96xrlEUrFzj4J4JYrms_qXtcDVOwfm6gI19vWm_Cl10EN4DAUGPXnmNQkASfKURL9b_TC0n/pub?output=csv"
+# URL de ton Sheet (format export multi-onglets)
+SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
+BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet="
 
-@st.cache_data
-def load_data():
-    return pd.read_csv(DATA_URL)
+# --- INTERFACE ---
+st.title("🎓 Coach Grand Oral")
+
+# Navigation calquée sur tes onglets
+menu = st.sidebar.radio("Navigation", 
+    ["Accueil", "Compétences fondamentales", "Plan ZEN", "Exercices (Ethos/Logos/Pathos)", "Compte à rebours"])
 
 try:
-    df = load_data()
-    
-    st.title("🚀 Objectif Grand Oral")
-    
-    tabs = st.tabs(["📋 L'Épreuve", "💡 Fondamentaux", "🧘 Plan ZEN", "⏳ J-7 à J"])
+    if menu == "Accueil":
+        df = pd.read_csv(BASE_URL + "Home")
+        for _, row in df.iterrows():
+            st.header(row['Nom'])
+            if 'Image' in df.columns: st.image(get_drive_direct_link(row['Image']))
+            st.write(row.get('texte', ''))
+            st.write(row.get('texte 1', ''))
 
-    # --- ONGLET 1 : L'ÉPREUVE (Détaillé avec tes colonnes) ---
-    with tabs[0]:
-        st.header("Tout savoir sur l'épreuve")
-        
-        # On cherche la ligne où la colonne 'Nom' contient 'L\'épreuve'
-        # Note : On adapte selon tes noms de colonnes exacts
-        row_epreuve = df[df['Nom'].str.contains("épreuve", case=False, na=False)]
-        
-        if not row_epreuve.empty:
-            data = row_epreuve.iloc[0]
-            
-            # Affichage de l'image principale si elle existe
-            if pd.notna(data.get('Image')):
-                st.image(get_drive_direct_link(data['Image']), use_column_width=True)
-            
-            # Affichage des textes
-            for col in ['texte', 'texte 1', 'texte 2', 'texte 3', 'texte 4']:
-                if pd.notna(data.get(col)):
-                    st.write(data[col])
-            
-            # Affichage des images secondaires
-            cols_img = st.columns(3)
-            for i, col_name in enumerate(['image 1', 'image 2', 'image 3']):
-                if pd.notna(data.get(col_name)):
-                    with cols_img[i]:
-                        st.image(get_drive_direct_link(data[col_name]))
-            
-            # Affichage de la vidéo (si c'est un lien YouTube)
-            if pd.notna(data.get('video')):
-                if "youtube.com" in str(data['video']) or "youtu.be" in str(data['video']):
-                    st.video(data['video'])
-                else:
-                    st.link_button("🎥 Voir la vidéo", data['video'])
+    elif menu == "Compétences fondamentales":
+        df = pd.read_csv(BASE_URL + "Compétences%20fondamentales")
+        col1, col2 = st.columns(2)
+        for i, row in df.iterrows():
+            with st.expander(f"💡 Conseil {i+1}"):
+                if 'Image' in df.columns: st.image(get_drive_direct_link(row['Image']))
+                st.write(row.get('texte', ''))
 
-    # --- LES AUTRES ONGLETS (Reste inchangé pour l'instant) ---
-    with tabs[1]:
-        st.write("Contenu des compétences...")
-    with tabs[2]:
-        st.write("Contenu Plan ZEN...")
-    with tabs[3]:
-        st.write("Contenu J-7...")
+    elif menu == "Plan ZEN":
+        df = pd.read_csv(BASE_URL + "ZEN")
+        for _, row in df.iterrows():
+            with st.container(border=True):
+                st.subheader(row['nom'])
+                cols = st.columns([1, 2])
+                with cols[0]:
+                    if 'logo' in df.columns: st.image(get_drive_direct_link(row['logo']), width=100)
+                with cols[1]:
+                    st.write(row.get('texte', ''))
+                if 'image' in df.columns: st.image(get_drive_direct_link(row['image']))
+
+    elif menu == "Exercices (Ethos/Logos/Pathos)":
+        onglet = st.selectbox("Choisir la catégorie", ["Exercices ETHOS", "Exercices LOGOS", "Exercices PATHOS"])
+        df = pd.read_csv(BASE_URL + onglet.replace(" ", "%20"))
+        for _, row in df.iterrows():
+            with st.expander(f"🎯 {row['nom']}"):
+                st.write(f"**Description :** {row['descriptif']}")
+                st.info(f"**L'exercice :** \n\n {row['Exercice']}")
+
+    elif menu == "Compte à rebours":
+        df = pd.read_csv(BASE_URL + "Countdown")
+        for _, row in df.iterrows():
+            st.warning(f"🗓️ {row['nom']}")
+            st.write(row.get('texte 1', ''))
+            st.write(row.get('texte 2', ''))
 
 except Exception as e:
-    st.error(f"Erreur de lecture : {e}")
+    st.error(f"Note : L'onglet '{menu}' demande un ajustement ou est en cours de mise à jour.")
+    st.info("Vérifie que le nom de l'onglet dans ton Google Sheet est exactement le même que dans le code.")
