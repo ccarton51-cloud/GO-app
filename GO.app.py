@@ -2,50 +2,99 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 
-st.set_page_config(page_title="Diagnostic Coach", layout="wide")
+# 1. Configuration
+st.set_page_config(page_title="Coach Grand Oral", layout="wide")
 
-# 1. Paramètres
+def get_link(url):
+    if pd.isna(url) or len(str(url)) < 10: return None
+    url = str(url).strip()
+    if "github.com" in url and "raw" not in url:
+        url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+    if "?" in url: url = url.split("?")[0] # Nettoyage des paramètres
+    return url
+
+# 2. Paramètres Google Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
-BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet="
 
-# 2. Menu
-menu = st.sidebar.radio("Navigation", ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
+# --- CONFIGURATION DES ONGLETS ---
+# Si un onglet bugge, remplace son nom par son GID (ex: "ZEN": "123456")
+TABS = {
+    "Home": "0",
+    "L'épreuve": "L'épreuve",
+    "Compétences fondamentales": "Compétences fondamentales",
+    "ZEN": "ZEN",
+    "L'ETHOS": "434742742",  # Ton GID tout neuf !
+    "Exercices LOGOS": "Exercices LOGOS",
+    "Exercices PATHOS": "Exercices PATHOS",
+    "Countdown": "Countdown"
+}
 
-st.write(f"### Diagnostic : Onglet sélectionné = **{menu}**")
+menu = st.sidebar.radio("Navigation", list(TABS.keys()))
+st.title(f"Coach Grand Oral")
 
+# --- CHARGEMENT DES DONNÉES ---
 try:
-    # On force la lecture du Sheet sans aucun cache
-    url = f"{BASE_URL}{urllib.parse.quote(menu)}&cachebust={pd.Timestamp.now().timestamp()}"
-    df = pd.read_csv(url).fillna("")
-    
-    # Affichage des colonnes détectées pour comprendre le bug
-    colonnes_trouvees = list(df.columns)
-    st.info(f"Colonnes détectées dans cet onglet : {colonnes_trouvees}")
-
-    if menu == "L'ETHOS":
-        # On force l'affichage brut pour voir ce qui arrive du Sheet
-        for i, row in df.iterrows():
-            nom = str(row.get('Nom', row.get('nom', '')))
-            if nom and nom.lower() not in ["nan", "0", ""]:
-                st.subheader(f"Nom : {nom}")
-                
-                # Image
-                img_col = 'image' if 'image' in df.columns else 'logo'
-                link = str(row.get(img_col, ''))
-                if "http" in link:
-                    # Conversion lien raw automatique
-                    final_link = link.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/").split('?')[0]
-                    st.image(final_link, width=400)
-                
-                # Descriptif
-                st.write(f"**Descriptif :** {row.get('descriptif', row.get('Descriptif', 'N/A'))}")
-                
-                # Exercice
-                st.info(f"**Exercice :** {row.get('exercice', row.get('Exercice', 'N/A'))}")
-                st.divider()
+    target = TABS[menu]
+    # Si la cible est un chiffre (GID), on utilise l'export par GID, sinon par nom d'onglet
+    if target.isdigit():
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={target}"
     else:
-        st.write("Contenu des autres pages (en attente de validation Ethos)")
-        st.dataframe(df.head(3)) # Affiche un aperçu du tableau pour vérifier les données
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(target)}"
+    
+    # On force le rafraîchissement avec un timestamp
+    df = pd.read_csv(f"{url}&cache={pd.Timestamp.now().timestamp()}").fillna("")
+    
+    # Nettoyage standard des noms de colonnes (Minuscules et sans espaces)
+    df.columns = [c.strip().lower() for c in df.columns]
+
+    # --- AFFICHAGE L'ETHOS ---
+    if menu == "L'ETHOS":
+        for _, row in df.iterrows():
+            nom = str(row.get('nom', '')).strip()
+            if nom and nom.lower() not in ["nan", "0", ""]:
+                st.header(nom) # 1. NOM
+                
+                # 2. IMAGE (colonne 'image' ou 'logo')
+                img_val = row.get('image', row.get('logo', ''))
+                img_url = get_link(img_val)
+                if img_url:
+                    st.image(img_url, width=500)
+                
+                # 3. DESCRIPTIF
+                desc = str(row.get('descriptif', '')).strip()
+                if desc and desc.lower() not in ["nan", "0", ""]:
+                    st.write(desc)
+                
+                # 4. EXERCICE
+                exo = str(row.get('exercice', '')).strip()
+                if exo and exo.lower() not in ["nan", "0", ""]:
+                    st.info(f"**L'exercice :**\n\n{exo}")
+                
+                st.divider()
+
+    # --- AFFICHAGE HOME ---
+    elif menu == "Home":
+        st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=200)
+        st.write("Bienvenue sur votre espace de préparation au Grand Oral.")
+
+    # --- AFFICHAGE AUTRES PAGES ---
+    else:
+        for _, row in df.iterrows():
+            nom = str(row.get('nom', '')).strip()
+            if nom and nom.lower() not in ["nan", "0", ""]:
+                st.header(nom)
+                
+                txt = str(row.get('texte', '')).strip()
+                if txt: st.markdown(f"### {txt}")
+                
+                for c in ['image', 'image 1', 'image 2']:
+                    if c in df.columns:
+                        l = get_link(row[c])
+                        if l: st.image(l, width=600)
+                
+                if 'video' in df.columns and str(row['video']).startswith('http'):
+                    st.video(row['video'])
+                st.divider()
 
 except Exception as e:
-    st.error(f"Erreur technique : {e}")
+    st.error(f"Erreur d'accès à l'onglet : {e}")
