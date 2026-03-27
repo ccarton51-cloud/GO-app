@@ -4,7 +4,7 @@ import re
 
 # 1. Configuration de la page (Favicon Chrome)
 LOGO_URL = "https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png"
-st.set_page_config(page_title="Coach ", page_icon=LOGO_URL, layout="wide")
+st.set_page_config(page_title="Coach", page_icon=LOGO_URL, layout="wide")
 
 def get_link(url):
     if pd.isna(url) or len(str(url)) < 10 or not str(url).strip().lower().startswith('http'): 
