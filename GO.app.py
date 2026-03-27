@@ -28,7 +28,6 @@ SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 
 # --- CONFIGURATION DES ONGLETS ---
 # On utilise le GID pour L'ETHOS pour être précis. Les autres par nom.
-# Si ZEN bugge aussi, il faudra trouver son GID (gid=... dans l'URL)
 TABS = {
     "Home": "Home",
     "L'épreuve": "L'épreuve",
@@ -71,12 +70,12 @@ try:
                 st.header(nom) # 1. NOM
                 
                 # 2. IMAGE (colonne B, maintenant appelée 'image' ou 'logo')
-                # On teste les deux noms au cas où
                 img_val = row.get('image', row.get('logo', ''))
                 img_url = get_clean_link(img_val)
                 if img_url:
-                    # use_container_width=True permet d'adapter l'image à la largeur de l'écran
-                    st.image(img_url, use_container_width=True, caption=f"Illustration : {nom}")
+                    # MODIFICATION ICI : On utilise une largeur fixe (width=400)
+                    # et on enlève use_container_width=True
+                    st.image(img_url, width=400)
                 
                 # 3. DESCRIPTIF
                 desc = str(row.get('descriptif', '')).strip()
@@ -103,7 +102,6 @@ try:
                     st.markdown(f"### {txt}")
                 
                 # Cherche n'importe quelle colonne image valide (image, logo, image 1, etc.)
-                # Le code est devenu flexible pour ZEN
                 image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
                 for c in image_cols:
                     l = get_clean_link(row[c])
