@@ -25,20 +25,31 @@ try:
     df = pd.read_csv(BASE_URL + onglet_nom)
     df = df.fillna("")
 
-    # Nettoyage des noms de colonnes (enlève espaces et met en minuscule)
-    # Cela permet de trouver "Nom" même si c'est écrit "nom " ou "NOM"
-    cols_brutes = df.columns.tolist()
+    # Nettoyage des noms de colonnes
     df.columns = [c.strip().lower() for c in df.columns]
 
     if menu == "Home":
         for i, row in df.iterrows():
             titre = row.get('nom', '')
             if titre: st.header(titre)
+            
+            # Affichage de l'image principale si elle existe dans le sheet
             if 'image' in df.columns and row['image'] != "":
                 st.image(get_drive_direct_link(row['image']), use_container_width=True)
-            # Affiche toutes les colonnes qui commencent par 'texte'
+            
+            # Affichage des textes (texte, texte 1, texte 2...)
             for c in df.columns:
                 if 'texte' in c and row[c] != "": st.write(row[c])
+            
+            # --- AJOUT SPÉCIFIQUE POUR "L'ÉPREUVE" ---
+            if "épreuve" in titre.lower():
+                st.write("---")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.image(get_drive_direct_link("https://drive.google.com/file/d/12vSOPi3k8Nca-iJOFxaM0mHQT9tK6rBp/view?usp=sharing"), caption="Focus Épreuve 1")
+                with col2:
+                    st.image(get_drive_direct_link("https://drive.google.com/file/d/1YgJDvx7XRn4ltvS6yGDPe3IOVum0VNSj/view?usp=sharing"), caption="Focus Épreuve 2")
+                st.write("---")
 
     elif menu == "Compétences fondamentales":
         st.header("Les Fondamentaux")
@@ -69,10 +80,8 @@ try:
             with st.expander(f"🎯 {titre_ex}"):
                 if 'descriptif' in df.columns: st.write(f"**Objectif :** {row['descriptif']}")
                 st.divider()
-                # On cherche la colonne qui contient 'exercice'
                 col_ex = [c for c in df.columns if 'exercice' in c]
                 if col_ex: st.write(row[col_ex[0]])
-                
                 if 'video' in df.columns and row['video'] != "":
                     st.video(row['video'])
                 if 'image' in df.columns and row['image'] != "":
@@ -96,9 +105,7 @@ try:
             st.divider()
 
 except Exception as e:
-    st.error(f"Onglet '{menu}' : Problème de structure du tableau.")
-    st.write("Détail technique : ", e)
-    st.info("Vérifie que les colonnes ont bien les noms prévus dans cet onglet.")
+    st.error(f"Erreur technique : {e}")
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Coach Grand Oral v1.1")
+st.sidebar.caption("Coach Grand Oral v1.2")
