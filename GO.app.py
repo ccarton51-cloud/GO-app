@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 
-# 1. Configuration
+# 1. Configuration de la page
 LOGO_FIXE = "https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png"
 st.set_page_config(page_title="Coach Grand Oral", page_icon=LOGO_FIXE, layout="wide")
 
@@ -20,7 +20,7 @@ BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:c
 
 st.title("Coach Grand Oral")
 
-# 3. Menu
+# 3. Navigation (Assure-toi que les noms ici correspondent à tes onglets)
 menu = st.sidebar.radio("Navigation", 
     ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
 
@@ -29,35 +29,35 @@ try:
     df = pd.read_csv(BASE_URL + onglet_encode).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- PAGE ACCUEIL (HOME) ---
+    # --- CAS 1 : PAGE HOME ---
     if menu == "Home":
         st.image(LOGO_FIXE, width=200)
         st.markdown("Bienvenue dans ton allié ultime pour réussir le Grand Oral...")
 
-    # --- PAGE L'ETHOS (Ordre spécifique demandé) ---
+    # --- CAS 2 : PAGE L'ETHOS (Logique ultra-stricte) ---
     elif menu == "L'ETHOS":
         for i, row in df.iterrows():
-            # 1. NOM
+            # 1. NOM (Header)
             if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
                 st.header(row['nom'])
             
-            # 2. IMAGE (Colonne 'logo' dans ton Sheet)
+            # 2. IMAGE (Colonne 'logo' dans ton Sheet Ethos)
             if 'logo' in df.columns:
                 img = get_link(row['logo'])
                 if img:
-                    st.image(img, width=600)
+                    st.image(img, width=500)
             
             # 3. DESCRIPTIF
             if 'descriptif' in df.columns and str(row['descriptif']).strip() not in ["", "0", "nan"]:
-                st.write(f"**Note :** {row['descriptif']}")
+                st.write(f"{row['descriptif']}")
             
-            # 4. EXERCICE
+            # 4. EXERCICE (Dans un bloc info pour bien séparer)
             if 'exercice' in df.columns and str(row['exercice']).strip() not in ["", "0", "nan"]:
-                st.info(f"**L'exercice :** \n\n {row['exercice']}")
+                st.info(f"**L'exercice :**\n\n{row['exercice']}")
 
             st.divider()
 
-    # --- AUTRES PAGES (ZEN, L'épreuve, etc.) ---
+    # --- CAS 3 : AUTRES PAGES (ZEN, L'épreuve...) ---
     else:
         for i, row in df.iterrows():
             if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
@@ -66,6 +66,7 @@ try:
             if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
                 st.markdown(f"### {row['texte']}")
 
+            # Images pour ZEN / Epreuve
             for col_img in ['image 1', 'image 2']:
                 if col_img in df.columns:
                     l = get_link(row[col_img])
@@ -77,4 +78,4 @@ try:
             st.divider()
 
 except Exception as e:
-    st.info("Chargement du contenu...")
+    st.error("Impossible de charger l'onglet. Vérifiez le nom dans le Google Sheet.")
