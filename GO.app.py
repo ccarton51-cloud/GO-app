@@ -33,7 +33,7 @@ try:
 
     # --- PAGE ACCUEIL (HOME) ---
     if menu == "Home":
-        # On utilise la colonne 'logo' comme tu l'as configurée
+        # On affiche le logo depuis ta colonne 'logo'
         img_url = LOGO_FIXE
         if 'logo' in df.columns:
             link = get_link(df['logo'].iloc[0])
@@ -41,7 +41,7 @@ try:
         
         st.image(img_url, width=200)
         
-        # Texte de bienvenue en dur pour être sûr qu'il ne disparaisse pas
+        # Texte de bienvenue complet (sans erreur de syntaxe !)
         st.markdown("""
         Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
         Cette application a été conçue comme un véritable aide-mémoire, simple et efficace, pour t’accompagner partout dans ta préparation. Tu y trouveras tout l’essentiel pour aborder l’épreuve avec confiance : le déroulement détaillé du Grand Oral pour savoir exactement à quoi t’attendre, des “plans zen” pour apprendre à gérer ton stress et rester serein, ainsi que des exercices pratiques pour maîtriser les fondamentaux de la prise de parole — ethos, pathos, logos — et faire passer ton message avec impact.  
@@ -50,4 +50,40 @@ try:
         
         Parce que la réussite se construit aussi dans les derniers jours, un compte à rebours t’accompagne de J-7 jusqu’au jour J, avec des rappels et des conseils pour rester concentré et prêt au bon moment.  
         
-        Que tu sois en train de commencer tes révisions ou
+        Que tu sois en train de commencer tes révisions ou dans la dernière ligne droite, cette application est là pour te guider, t’entraîner et te rassurer. À toi de jouer.
+        """)
+
+    # --- AUTRES PAGES (ZEN, L'épreuve, etc.) ---
+    else:
+        for i, row in df.iterrows():
+            # Titre
+            if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
+                st.header(row['nom'])
+            
+            # Texte
+            if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
+                st.write(row['texte'])
+
+            # Images (On cherche image 1 et image 2 pour tes plans ZEN)
+            liens_valides = []
+            for col_img in ['image 1', 'image 2']:
+                if col_img in df.columns:
+                    l = get_link(row[col_img])
+                    if l: liens_valides.append(l)
+            
+            if liens_valides:
+                if len(liens_valides) > 1:
+                    cols = st.columns(len(liens_valides))
+                    for idx, l in enumerate(liens_valides):
+                        cols[idx].image(l, use_container_width=True)
+                else:
+                    st.image(liens_valides[0], use_container_width=True)
+
+            # Vidéo
+            if 'video' in df.columns and str(row['video']).startswith('http'):
+                st.video(row['video'])
+            
+            st.divider()
+
+except Exception as e:
+    st.info("Sélectionnez une section dans le menu de gauche pour charger le contenu.")
