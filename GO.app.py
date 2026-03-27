@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 
-# 1. Configuration
+# 1. Configuration et Nettoyage du titre
 st.set_page_config(page_title="Coach Grand Oral", layout="wide")
 
 def get_link(url):
@@ -12,74 +12,74 @@ def get_link(url):
         url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
     return url
 
-# 2. Paramètres Google Sheet
+# 2. Connexion Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet="
 
-st.title("Coach Grand Oral")
+# On définit le menu (doit être EXACTEMENT comme tes onglets Sheet)
+options = ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"]
+menu = st.sidebar.radio("Navigation", options)
 
-# 3. Menu
-menu = st.sidebar.radio("Navigation", 
-    ["Home", "L'épreuve", "Compétences fondamentales", "ZEN", "L'ETHOS", "Exercices LOGOS", "Exercices PATHOS", "Countdown"])
+st.title(f"Coach Grand Oral - {menu}")
 
-# --- CHARGEMENT SANS CACHE POUR FORCER LA MISE À JOUR ---
+# --- FONCTION DE CHARGEMENT FORCÉ ---
+def load_sheet_data(onglet):
+    # On ajoute un paramètre bidon à l'URL pour forcer Google à rafraîchir les données
+    url = f"{BASE_URL}{urllib.parse.quote(onglet)}&cachebust={pd.Timestamp.now().timestamp()}"
+    return pd.read_csv(url).fillna("")
+
 try:
-    url = BASE_URL + urllib.parse.quote(menu)
-    df = pd.read_csv(url).fillna("")
+    df = load_sheet_data(menu)
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- LOGIQUE POUR L'ETHOS ---
+    # --- LOGIQUE STRICTE PAR PAGE ---
+    
     if menu == "L'ETHOS":
-        for i, row in df.iterrows():
-            # On ne traite que les lignes qui ont un NOM (pour éviter les lignes vides du Sheet)
-            nom_val = str(row.get('nom', '')).strip()
-            if nom_val and nom_val.lower() not in ["0", "nan", ""]:
-                # 1. NOM
-                st.header(nom_val)
+        # ICI ON NE CHERCHE QUE L'ETHOS
+        for _, row in df.iterrows():
+            nom = str(row.get('nom', '')).strip()
+            if nom and nom.lower() not in ["", "nan", "0"]:
+                st.header(nom) # NOM
                 
-                # 2. IMAGE (colonne logo)
-                if 'logo' in df.columns:
-                    img = get_link(row['logo'])
-                    if img:
-                        st.image(img, width=600)
+                # IMAGE (colonne 'image' d'après ta capture e65702)
+                # Attention : dans ta capture, la colonne s'appelle 'image' (B)
+                img_url = get_link(row.get('image', ''))
+                if img_url:
+                    st.image(img_url, width=500)
                 
-                # 3. DESCRIPTIF
-                if 'descriptif' in df.columns:
-                    desc = str(row['descriptif']).strip()
-                    if desc and desc.lower() not in ["0", "nan", ""]:
-                        st.markdown(f"**Note :** {desc}")
+                # DESCRIPTIF
+                desc = str(row.get('descriptif', '')).strip()
+                if desc and desc.lower() not in ["", "nan", "0"]:
+                    st.write(desc)
                 
-                # 4. EXERCICE
-                if 'exercice' in df.columns:
-                    exo = str(row['exercice']).strip()
-                    if exo and exo.lower() not in ["0", "nan", ""]:
-                        st.info(f"**L'exercice :**\n\n{exo}")
+                # EXERCICE
+                exo = str(row.get('exercice', '')).strip()
+                if exo and exo.lower() not in ["", "nan", "0"]:
+                    st.info(f"**L'exercice :**\n\n{exo}")
                 
                 st.divider()
 
-    # --- LOGIQUE POUR LA HOME ---
     elif menu == "Home":
         st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=200)
-        st.write("Bienvenue dans ton allié ultime pour réussir le Grand Oral...")
+        st.write("Bienvenue sur votre espace de préparation au Grand Oral.")
 
-    # --- LOGIQUE POUR LES AUTRES PAGES ---
     else:
-        for i, row in df.iterrows():
-            nom_val = str(row.get('nom', '')).strip()
-            if nom_val and nom_val.lower() not in ["0", "nan", ""]:
-                st.header(nom_val)
+        # AUTRES PAGES (ZEN, Epreuve...)
+        for _, row in df.iterrows():
+            nom = str(row.get('nom', '')).strip()
+            if nom and nom.lower() not in ["", "nan", "0"]:
+                st.header(nom)
                 
-                if 'texte' in df.columns:
-                    st.write(row['texte'])
-
-                for col in ['image 1', 'image 2']:
-                    if col in df.columns:
-                        l = get_link(row[col])
-                        if l: st.image(l, width=600)
+                txt = str(row.get('texte', '')).strip()
+                if txt: st.markdown(f"### {txt}")
+                
+                for c in ['image', 'image 1', 'image 2']:
+                    l = get_link(row.get(c, ''))
+                    if l: st.image(l, width=600)
                 
                 if 'video' in df.columns and str(row['video']).startswith('http'):
                     st.video(row['video'])
                 st.divider()
 
 except Exception as e:
-    st.error("Erreur de chargement de l'onglet. Vérifiez le nom dans le Google Sheet.")
+    st.error(f"Erreur lors de la lecture de l'onglet '{menu}'.")
