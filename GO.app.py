@@ -2,9 +2,16 @@ import streamlit as st
 import pandas as pd
 import re
 
-# 1. Configuration de la page
-st.set_page_config(page_title="Coach Grand Oral", page_icon="🎓", layout="wide")
+# --- PARTIE MODIFIÉE POUR L'ICÔNE (FAVICON) ---
+# Lien direct vers ton logo "points" sur GitHub
+LOGO_URL = "https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png"
 
+# Configuration de la page avec ton logo personnalisé
+st.set_page_config(
+    page_title="Coach Grand Oral",
+    page_icon=LOGO_URL, # <--- C'est ici que le changement opère !
+    layout="wide"
+)
 def get_link(url):
     # Sécurité absolue : si c'est pas du texte ou si c'est trop court, on ignore
     if pd.isna(url) or len(str(url)) < 10: 
