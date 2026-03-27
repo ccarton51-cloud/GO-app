@@ -44,38 +44,51 @@ if menu == "Home":
 # --- AUTRES PAGES ---
 else:
     try:
-        onglet_nom = menu.replace(" ", "%20").replace("'", "%27")
-        df = pd.read_csv(BASE_URL + onglet_nom).fillna("")
+        # On nettoie le nom pour l'URL (gestion de l'apostrophe et des accents)
+        import urllib.parse
+        onglet_encode = urllib.parse.quote(menu)
+        
+        # Chargement des données
+        df = pd.read_csv(BASE_URL + onglet_encode).fillna("")
         df.columns = [c.strip().lower() for c in df.columns]
 
-        for i, row in df.iterrows():
-            if 'nom' in df.columns and str(row['nom']).strip() not in ["", "0", "nan"]:
-                st.header(row['nom'])
-            
-            if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
-                st.write(row['texte'])
+        if df.empty:
+            st.warning(f"L'onglet '{menu}' semble vide ou n'existe pas dans le Google Sheet.")
+        else:
+            for i, row in df.iterrows():
+                # On affiche le titre s'il existe
+                nom_col = 'nom' if 'nom' in df.columns else None
+                if nom_col and str(row[nom_col]).strip() not in ["", "0", "nan"]:
+                    st.header(row[nom_col])
+                
+                # Texte principal
+                if 'texte' in df.columns and str(row['texte']).strip() not in ["", "0", "nan"]:
+                    st.write(row['texte'])
 
-            # Gestion des images (image 1, image 2, etc.)
-            cols_img = [c for c in df.columns if 'image' in c]
-            liens_valides = [get_link(row[c]) for c in cols_img if get_link(row[c])]
-            
-            if liens_valides:
-                if len(liens_valides) > 1:
-                    cols = st.columns(len(liens_valides))
-                    for idx, l in enumerate(liens_valides):
-                        cols[idx].image(l, use_container_width=True)
-                else:
-                    st.image(liens_valides[0], use_container_width=True)
+                # Gestion des images (image 1, image 2, etc.)
+                cols_img = [c for c in df.columns if 'image' in c]
+                liens_valides = [get_link(row[c]) for c in cols_img if get_link(row[c])]
+                
+                if liens_valides:
+                    if len(liens_valides) > 1:
+                        cols = st.columns(len(liens_valides))
+                        for idx, l in enumerate(liens_valides):
+                            cols[idx].image(l, use_container_width=True)
+                    else:
+                        st.image(liens_valides[0], use_container_width=True)
 
-            if 'video' in df.columns and str(row['video']).startswith('http'):
-                st.video(row['video'])
-            
-            for c in df.columns:
-                if 'texte' in c and c != 'texte':
-                    val = str(row[c]).strip()
-                    if val and val not in ["0", "nan"]:
-                        st.write(val)
-            st.divider()
+                # Vidéo
+                if 'video' in df.columns and str(row['video']).startswith('http'):
+                    st.video(row['video'])
+                
+                # Textes secondaires
+                for c in df.columns:
+                    if 'texte' in c and c != 'texte':
+                        val = str(row[c]).strip()
+                        if val and val not in ["", "0", "nan"]:
+                            st.write(val)
+                st.divider()
 
     except Exception as e:
-        st.info("Contenu en cours de chargement...")
+        st.error(f"Impossible de charger l'onglet '{menu}'. Vérifiez qu'il existe bien dans votre Google Sheet.")
+        st.info("Astuce : Vérifiez que le nom de l'onglet en bas de votre Excel est exactement 'L'épreuve'")
