@@ -20,15 +20,15 @@ def get_clean_link(url):
 # 2. Paramètres Google Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 
-# Mise à jour des noms d'onglets (LOGOS au lieu de Exercices LOGOS)
+# --- CONFIGURATION DES ONGLETS ---
 TABS = {
     "Home": "Home",
     "L'épreuve": "L'épreuve",
     "Compétences fondamentales": "Compétences fondamentales",
     "ZEN": "ZEN",
     "L'ETHOS": "434742742", 
-    "LOGOS": "LOGOS", # Changement de nom ici
-    "Exercices PATHOS": "Exercices PATHOS",
+    "LOGOS": "LOGOS",
+    "PATHOS": "PATHOS", # Ajouté ici
     "Countdown": "Countdown"
 }
 
@@ -37,65 +37,56 @@ st.title(f"Coach Grand Oral")
 
 try:
     target = TABS[menu]
+    # Si c'est un chiffre (GID), on utilise l'export direct, sinon le nom d'onglet
     if target.isdigit():
         url_base = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={target}"
     else:
         url_base = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(target)}"
     
+    # Force le rafraîchissement
     timestamp = int(time.time())
     full_url = f"{url_base}&cachebuster={timestamp}"
     df = pd.read_csv(full_url).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- LOGIQUE POUR L'ETHOS ET LE LOGOS (Images à 400px) ---
-    if menu in ["L'ETHOS", "LOGOS"]:
+    # --- LOGIQUE POUR ETHOS, LOGOS ET PATHOS (Structure fixe + Images 400px) ---
+    if menu in ["L'ETHOS", "LOGOS", "PATHOS"]:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
             if nom and nom.lower() not in ["nan", "0", ""]:
-                st.header(nom)
+                st.header(nom) # 1. NOM
                 
-                # Image réduite à 400px
+                # 2. IMAGE (Largeur contrôlée à 400px)
                 img_val = row.get('image', row.get('logo', ''))
                 img_url = get_clean_link(img_val)
                 if img_url:
                     st.image(img_url, width=400)
                 
-                # Descriptif / Texte
+                # 3. DESCRIPTIF / TEXTE
                 desc = str(row.get('descriptif', row.get('texte', ''))).strip()
                 if desc and desc.lower() not in ["nan", "0", ""]:
                     st.markdown(desc)
                 
-                # Exercice
+                # 4. EXERCICE (Bloc info bleu)
                 exo = str(row.get('exercice', '')).strip()
                 if exo and exo.lower() not in ["nan", "0", ""]:
                     st.info(f"**L'exercice :**\n\n{exo}")
+                
                 st.divider()
 
     # --- AFFICHAGE HOME ---
     elif menu == "Home":
         st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=200)
         st.markdown("""
-        Bienvenue dans ton allié ultime pour réussir le Grand Oral... 
-        *(Texte complet de bienvenue)*
+        Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
+        Cette application a été conçue comme un véritable aide-mémoire pour t’accompagner partout dans ta préparation. 
+        
+        Utilise la navigation pour accéder aux différentes sections : le déroulement de l'épreuve, les conseils ZEN, 
+        et les exercices pour maîtriser l'**Ethos**, le **Logos** et le **Pathos**.
         """)
 
-    # --- AUTRES PAGES ---
+    # --- AUTRES PAGES (ZEN, Épreuve...) ---
     else:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
-            if nom and nom.lower() not in ["nan", "0", ""]:
-                st.header(nom)
-                txt = str(row.get('texte', '')).strip()
-                if txt: st.markdown(f"### {txt}")
-                
-                image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
-                for c in image_cols:
-                    l = get_clean_link(row[c])
-                    if l: st.image(l, use_container_width=True)
-                
-                if 'video' in df.columns and str(row['video']).startswith('http'):
-                    st.video(row['video'])
-                st.divider()
-
-except Exception as e:
-    st.error(f"Erreur : {e}")
+            if nom and nom.lower()
