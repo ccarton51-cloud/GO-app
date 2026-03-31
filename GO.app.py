@@ -28,7 +28,7 @@ TABS = {
     "ZEN": "ZEN",
     "L'ETHOS": "434742742", 
     "LOGOS": "LOGOS",
-    "PATHOS": "PATHOS", # Ajouté ici
+    "PATHOS": "PATHOS",
     "Countdown": "Countdown"
 }
 
@@ -37,37 +37,32 @@ st.title(f"Coach Grand Oral")
 
 try:
     target = TABS[menu]
-    # Si c'est un chiffre (GID), on utilise l'export direct, sinon le nom d'onglet
     if target.isdigit():
         url_base = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={target}"
     else:
         url_base = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(target)}"
     
-    # Force le rafraîchissement
     timestamp = int(time.time())
     full_url = f"{url_base}&cachebuster={timestamp}"
     df = pd.read_csv(full_url).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- LOGIQUE POUR ETHOS, LOGOS ET PATHOS (Structure fixe + Images 400px) ---
+    # --- LOGIQUE POUR ETHOS, LOGOS ET PATHOS ---
     if menu in ["L'ETHOS", "LOGOS", "PATHOS"]:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
             if nom and nom.lower() not in ["nan", "0", ""]:
-                st.header(nom) # 1. NOM
+                st.header(nom)
                 
-                # 2. IMAGE (Largeur contrôlée à 400px)
                 img_val = row.get('image', row.get('logo', ''))
                 img_url = get_clean_link(img_val)
                 if img_url:
                     st.image(img_url, width=400)
                 
-                # 3. DESCRIPTIF / TEXTE
                 desc = str(row.get('descriptif', row.get('texte', ''))).strip()
                 if desc and desc.lower() not in ["nan", "0", ""]:
-                    st.markdown(desc)
+                    st.write(desc)
                 
-                # 4. EXERCICE (Bloc info bleu)
                 exo = str(row.get('exercice', '')).strip()
                 if exo and exo.lower() not in ["nan", "0", ""]:
                     st.info(f"**L'exercice :**\n\n{exo}")
@@ -89,4 +84,21 @@ try:
     else:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
-            if nom and nom.lower()
+            if nom and nom.lower() not in ["nan", "0", ""]:
+                st.header(nom)
+                txt = str(row.get('texte', '')).strip()
+                if txt and txt.lower() not in ["nan", "0", ""]:
+                    st.markdown(f"### {txt}")
+                
+                # Gestion des images pour ZEN et Epreuve
+                image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
+                for c in image_cols:
+                    l = get_clean_link(row[c])
+                    if l: st.image(l, use_container_width=True)
+                
+                if 'video' in df.columns and str(row['video']).startswith('http'):
+                    st.video(row['video'])
+                st.divider()
+
+except Exception as e:
+    st.error(f"Erreur de chargement : {e}")
