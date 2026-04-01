@@ -7,9 +7,7 @@ import time
 st.set_page_config(page_title="Coach Grand Oral", layout="wide")
 
 def get_clean_link(url):
-    # Sécurité : on ignore les liens vides ou les "0" qui font bugger l'affichage
-    if pd.isna(url) or str(url).strip() in ["", "0", "nan", "None"]: 
-        return None
+    if pd.isna(url) or len(str(url)) < 10: return None
     url = str(url).strip()
     if "github.com" in url and "raw=true" not in url and "raw.githubusercontent.com" not in url:
         if "/blob/" in url:
@@ -44,14 +42,12 @@ try:
     else:
         url_base = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(target)}"
     
-    # Force le rafraîchissement à chaque seconde
     timestamp = int(time.time())
     full_url = f"{url_base}&cachebuster={timestamp}"
-    
     df = pd.read_csv(full_url).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- LOGIQUE POUR ETHOS, LOGOS ET PATHOS (Images fixes 400px) ---
+    # --- LOGIQUE POUR ETHOS, LOGOS ET PATHOS ---
     if menu in ["L'ETHOS", "LOGOS", "PATHOS"]:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
@@ -70,6 +66,7 @@ try:
                 exo = str(row.get('exercice', '')).strip()
                 if exo and exo.lower() not in ["nan", "0", ""]:
                     st.info(f"**L'exercice :**\n\n{exo}")
+                
                 st.divider()
 
     # --- AFFICHAGE HOME ---
@@ -83,26 +80,21 @@ try:
         et les exercices pour maîtriser l'**Ethos**, le **Logos** et le **Pathos**.
         """)
 
-    # --- AUTRES PAGES (ZEN, ÉPREUVE...) ---
+    # --- AUTRES PAGES (ZEN, Épreuve...) ---
     else:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
             if nom and nom.lower() not in ["nan", "0", ""]:
                 st.header(nom)
+                txt = str(row.get('texte', '')).strip()
+                if txt and txt.lower() not in ["nan", "0", ""]:
+                    st.markdown(f"### {txt}")
                 
-                # On affiche tous les textes (texte, texte 1, etc.)
-                txt_cols = [c for c in df.columns if 'texte' in c]
-                for c in txt_cols:
-                    t = str(row[c]).strip()
-                    if t and t.lower() not in ["nan", "0", ""]:
-                        st.write(t)
-                
-                # Gestion des images (image 1, image 2, logo...)
+                # Gestion des images pour ZEN et Epreuve
                 image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
                 for c in image_cols:
                     l = get_clean_link(row[c])
-                    if l: 
-                        st.image(l, use_container_width=True)
+                    if l: st.image(l, use_container_width=True)
                 
                 if 'video' in df.columns and str(row['video']).startswith('http'):
                     st.video(row['video'])
