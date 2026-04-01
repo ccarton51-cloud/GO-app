@@ -9,39 +9,28 @@ st.set_page_config(page_title="Coach Grand Oral", layout="wide")
 # --- STYLE PERSONNALISÉ (CSS) ---
 st.markdown("""
     <style>
-    /* Fond de l'application */
     .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     }
     
-    /* Style des titres */
     h1 {
-        color: #1E3A8A !important;
-        font-family: 'Helvetica Neue', sans-serif;
-        font-weight: 800;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        color: #2c3e50 !important;
+        font-family: 'Georgia', serif;
+        font-weight: 700;
     }
     
-    /* Style des cartes (Expanders et Info) */
     .st-expander {
         background-color: white !important;
-        border-radius: 15px !important;
-        border: none !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
-        margin-bottom: 10px;
+        border-radius: 10px !important;
+        border-left: 5px solid #2c3e50 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
     }
     
-    /* Boutons de la sidebar */
     .stRadio [role=radiogroup] {
-        background-color: rgba(255, 255, 255, 0.5);
-        border-radius: 15px;
-        padding: 15px;
-    }
-
-    /* Personnalisation des blocs Info/Warning */
-    .stAlert {
-        border-radius: 15px !important;
-        border: none !important;
+        background-color: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -60,6 +49,7 @@ def get_clean_link(url):
 # 2. Paramètres Google Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 
+# --- CONFIGURATION DES ONGLETS AVEC NOUVEAUX SYMBOLES ---
 TABS = {
     "Home": "Home",
     "L'épreuve": "L'épreuve",
@@ -70,8 +60,23 @@ TABS = {
     "Countdown": "Countdown"
 }
 
-menu = st.sidebar.radio("🎯 Navigation", list(TABS.keys()))
-st.title(f"🚀 {menu}") # Ajout d'une icône dynamique au titre
+# Icônes pour la barre latérale
+TAB_ICONS = {
+    "Home": "🏛️",
+    "L'épreuve": "📜",
+    "ZEN": "🌊",
+    "L'ETHOS": "🎭",
+    "LOGOS": "🏛️",
+    "PATHOS": "🕯️",
+    "Countdown": "⚓"
+}
+
+# Création du menu avec les nouveaux icônes
+menu_labels = [f"{TAB_ICONS[k]} {k}" for k in TABS.keys()]
+choice = st.sidebar.radio("🧭 Orientation", menu_labels)
+menu = choice.split(" ", 1)[1] # On récupère le nom sans l'icône pour la logique
+
+st.title(f"{TAB_ICONS[menu]} {menu}")
 
 try:
     target = TABS[menu]
@@ -86,38 +91,37 @@ try:
     df.columns = [c.strip().lower() for c in df.columns]
 
     if menu == "Home":
-        col_logo, col_txt = st.columns([1, 3])
-        with col_logo:
-            st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=150)
-        with col_txt:
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=120)
+        with col2:
             st.markdown("""
-            ### Bienvenue dans ton allié ultime pour réussir le Grand Oral.
-            Cette application a été conçue comme un véritable **aide-mémoire numérique** pour t’accompagner partout. 
+            ### L'art de la parole à portée de main.
+            Bienvenue dans votre espace de préparation. Cet outil a été conçu pour structurer votre pensée et affiner votre éloquence.
             
-            💡 **Conseil :** Ajoute cette page à l'écran d'accueil de ton téléphone pour y accéder comme une application !
+            *Utilisez le menu de navigation pour explorer les piliers de votre réussite.*
             """)
-        st.info("Utilise le menu à gauche pour commencer ta préparation.")
+        st.divider()
 
     elif menu == "Countdown":
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
             if nom and nom.lower() not in ["nan", "0", ""]:
-                st.markdown(f"## ⏳ {nom}")
+                st.markdown(f"### 🗓️ {nom}")
                 
                 img_url = get_clean_link(row.get('image', ''))
                 if img_url:
-                    # Note : j'ai mis width="stretch" comme suggéré par tes logs
                     st.image(img_url, width="stretch")
 
                 col_intro1, col_intro2 = st.columns(2)
                 with col_intro1:
                     desc = str(row.get('descriptif', '')).strip()
-                    if desc: st.markdown(f"🎯 **Objectif du jour :**\n{desc}")
+                    if desc: st.markdown(f"🖋️ **Note d'intention :**\n{desc}")
                 with col_intro2:
                     exo = str(row.get('exercice', '')).strip()
-                    if exo: st.info(f"⚡ **À faire absolument :**\n\n{exo}")
+                    if exo: st.info(f"🛠️ **Atelier préparatoire :**\n\n{exo}")
 
-                st.markdown("### 📋 Ton programme détaillé")
+                st.markdown("#### 📑 Protocole du jour")
                 cols_textes = st.columns(2)
                 
                 text_count = 0
@@ -126,7 +130,7 @@ try:
                     val = str(row.get(col_name, '')).strip()
                     if val and val.lower() not in ["nan", ""]:
                         with cols_textes[text_count % 2]:
-                            with st.expander(f"🔹 Étape {i}", expanded=True):
+                            with st.expander(f"◈ Séquence {i}", expanded=True):
                                 st.write(val)
                         text_count += 1
 
@@ -134,10 +138,10 @@ try:
                 c_fin1, c_fin2 = st.columns(2)
                 with c_fin1:
                     cons = str(row.get('conseil', '')).strip()
-                    if cons: st.warning(f"💡 **Le conseil du coach :**\n\n{cons}")
+                    if cons: st.warning(f"⚖️ **Arbitrage du coach :**\n\n{cons}")
                 with c_fin2:
                     det = str(row.get('détente', '')).strip()
-                    if det: st.success(f"🧘 **Zen attitude :**\n\n{det}")
+                    if det: st.success(f"🍃 **Relâchement :**\n\n{det}")
                 
                 st.divider()
 
@@ -154,17 +158,16 @@ try:
                 if desc: st.write(desc)
                 
                 exo = str(row.get('exercice', '')).strip()
-                if exo: st.info(f"**L'exercice :**\n\n{exo}")
+                if exo: st.info(f"🔍 **Mise en pratique :**\n\n{exo}")
                 st.divider()
 
     else:
-        # Logique pour les autres pages
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
             if nom and nom.lower() not in ["nan", "0", ""]:
                 st.header(nom)
                 txt = str(row.get('texte', '')).strip()
-                if txt: st.markdown(f"#### {txt}")
+                if txt: st.markdown(f"##### {txt}")
                 
                 image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
                 for c in image_cols:
