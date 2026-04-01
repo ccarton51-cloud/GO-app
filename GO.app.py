@@ -47,8 +47,70 @@ try:
     df = pd.read_csv(full_url).fillna("")
     df.columns = [c.strip().lower() for c in df.columns]
 
-    # --- LOGIQUE POUR ETHOS, LOGOS ET PATHOS ---
-    if menu in ["L'ETHOS", "LOGOS", "PATHOS"]:
+    # --- 1. AFFICHAGE HOME ---
+    if menu == "Home":
+        st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=200)
+        st.markdown("""
+        Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
+        Cette application a été conçue comme un véritable aide-mémoire pour t’accompagner partout dans ta préparation. 
+        
+        Utilise la navigation pour accéder aux différentes sections : le déroulement de l'épreuve, les conseils ZEN, 
+        et les exercices pour maîtriser l'**Ethos**, le **Logos** et le **Pathos**.
+        """)
+
+    # --- 2. LOGIQUE SPÉCIFIQUE COUNTDOWN ---
+    elif menu == "Countdown":
+        for _, row in df.iterrows():
+            nom = str(row.get('nom', '')).strip()
+            if nom and nom.lower() not in ["nan", "0", ""]:
+                st.header(f"⏳ {nom}")
+                
+                # Image principale du jour
+                img_url = get_clean_link(row.get('image', ''))
+                if img_url:
+                    st.image(img_url, width=500)
+
+                # Zone Intro : Descriptif et Exercice
+                col_intro1, col_intro2 = st.columns(2)
+                with col_intro1:
+                    desc = str(row.get('descriptif', '')).strip()
+                    if desc: st.markdown(f"**Objectif :** {desc}")
+                with col_intro2:
+                    exo = str(row.get('exercice', '')).strip()
+                    if exo: st.info(f"**Exercice de préparation :**\n\n{exo}")
+
+                st.write("---")
+                
+                # Affichage des étapes (Texte 1 à 5)
+                st.subheader("📋 Ton programme")
+                # On crée 2 colonnes pour les textes pour gagner de la place
+                cols_textes = st.columns(2)
+                
+                text_count = 0
+                for i in range(1, 6):
+                    col_name = f"texte {i}"
+                    val = str(row.get(col_name, '')).strip()
+                    if val and val.lower() not in ["nan", ""]:
+                        # Alterne entre la colonne gauche et droite
+                        with cols_textes[text_count % 2]:
+                            with st.expander(f"Étape {i}", expanded=True):
+                                st.write(val)
+                        text_count += 1
+
+                # Zone de fin : Conseil et Détente
+                st.write("---")
+                c_fin1, c_fin2 = st.columns(2)
+                with c_fin1:
+                    cons = str(row.get('conseil', '')).strip()
+                    if cons: st.warning(f"💡 **Conseil :**\n\n{cons}")
+                with c_fin2:
+                    det = str(row.get('détente', '')).strip()
+                    if det: st.success(f"🧘 **Détente :**\n\n{det}")
+                
+                st.divider()
+
+    # --- 3. LOGIQUE POUR ETHOS, LOGOS ET PATHOS ---
+    elif menu in ["L'ETHOS", "LOGOS", "PATHOS"]:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
             if nom and nom.lower() not in ["nan", "0", ""]:
@@ -69,18 +131,7 @@ try:
                 
                 st.divider()
 
-    # --- AFFICHAGE HOME ---
-    elif menu == "Home":
-        st.image("https://raw.githubusercontent.com/ccarton51-cloud/GO-app/main/images/logo.png", width=200)
-        st.markdown("""
-        Bienvenue dans ton allié ultime pour réussir le Grand Oral.  
-        Cette application a été conçue comme un véritable aide-mémoire pour t’accompagner partout dans ta préparation. 
-        
-        Utilise la navigation pour accéder aux différentes sections : le déroulement de l'épreuve, les conseils ZEN, 
-        et les exercices pour maîtriser l'**Ethos**, le **Logos** et le **Pathos**.
-        """)
-
-    # --- AUTRES PAGES (ZEN, Épreuve...) ---
+    # --- 4. AUTRES PAGES (ZEN, Épreuve, Compétences...) ---
     else:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
@@ -90,14 +141,16 @@ try:
                 if txt and txt.lower() not in ["nan", "0", ""]:
                     st.markdown(f"### {txt}")
                 
-                # Gestion des images pour ZEN et Epreuve
+                # Gestion des images multiples
                 image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
                 for c in image_cols:
                     l = get_clean_link(row[c])
                     if l: st.image(l, use_container_width=True)
                 
+                # Vidéo éventuelle
                 if 'video' in df.columns and str(row['video']).startswith('http'):
                     st.video(row['video'])
+                
                 st.divider()
 
 except Exception as e:
