@@ -20,11 +20,10 @@ def get_clean_link(url):
 # 2. Paramètres Google Sheet
 SHEET_ID = "1cAvqijg9fPLCLNEg9ip0nw2KSJLH9a7SvJqe31IYbHU"
 
-# --- CONFIGURATION DES ONGLETS ---
+# --- CONFIGURATION DES ONGLETS (Compétences fondamentales supprimé) ---
 TABS = {
     "Home": "Home",
     "L'épreuve": "L'épreuve",
-    "Compétences fondamentales": "Compétences fondamentales",
     "ZEN": "ZEN",
     "L'ETHOS": "434742742", 
     "LOGOS": "LOGOS",
@@ -65,12 +64,10 @@ try:
             if nom and nom.lower() not in ["nan", "0", ""]:
                 st.header(f"⏳ {nom}")
                 
-                # Image principale du jour
                 img_url = get_clean_link(row.get('image', ''))
                 if img_url:
                     st.image(img_url, width=500)
 
-                # Zone Intro : Descriptif et Exercice
                 col_intro1, col_intro2 = st.columns(2)
                 with col_intro1:
                     desc = str(row.get('descriptif', '')).strip()
@@ -80,10 +77,7 @@ try:
                     if exo: st.info(f"**Exercice de préparation :**\n\n{exo}")
 
                 st.write("---")
-                
-                # Affichage des étapes (Texte 1 à 5)
                 st.subheader("📋 Ton programme")
-                # On crée 2 colonnes pour les textes pour gagner de la place
                 cols_textes = st.columns(2)
                 
                 text_count = 0
@@ -91,13 +85,11 @@ try:
                     col_name = f"texte {i}"
                     val = str(row.get(col_name, '')).strip()
                     if val and val.lower() not in ["nan", ""]:
-                        # Alterne entre la colonne gauche et droite
                         with cols_textes[text_count % 2]:
                             with st.expander(f"Étape {i}", expanded=True):
                                 st.write(val)
                         text_count += 1
 
-                # Zone de fin : Conseil et Détente
                 st.write("---")
                 c_fin1, c_fin2 = st.columns(2)
                 with c_fin1:
@@ -131,7 +123,7 @@ try:
                 
                 st.divider()
 
-    # --- 4. AUTRES PAGES (ZEN, Épreuve, Compétences...) ---
+    # --- 4. AUTRES PAGES (ZEN, Épreuve...) ---
     else:
         for _, row in df.iterrows():
             nom = str(row.get('nom', '')).strip()
@@ -141,13 +133,11 @@ try:
                 if txt and txt.lower() not in ["nan", "0", ""]:
                     st.markdown(f"### {txt}")
                 
-                # Gestion des images multiples
                 image_cols = [c for c in df.columns if 'image' in c or 'logo' in c]
                 for c in image_cols:
                     l = get_clean_link(row[c])
                     if l: st.image(l, use_container_width=True)
                 
-                # Vidéo éventuelle
                 if 'video' in df.columns and str(row['video']).startswith('http'):
                     st.video(row['video'])
                 
